@@ -61,69 +61,6 @@ export function listProfilesForProvider(store: AuthProfileStore, provider: strin
     .map(([id]) => id);
 }
 
-/**
- * Remove all auth profiles, order entries, lastGood, and usageStats for a provider.
- * Returns the number of profiles removed (0 = nothing to clean).
- */
-export async function removeProfilesForProvider(params: {
-  provider: string;
-  agentDir?: string;
-}): Promise<number> {
-  const providerKey = normalizeProviderId(params.provider);
-  let removedCount = 0;
-
-  await updateAuthProfileStoreWithLock({
-    agentDir: params.agentDir,
-    updater: (store) => {
-      let changed = false;
-
-      // Remove profile entries matching the provider
-      for (const [id, cred] of Object.entries(store.profiles)) {
-        if (normalizeProviderId(cred.provider) === providerKey) {
-          delete store.profiles[id];
-          removedCount++;
-          changed = true;
-        }
-      }
-
-      // Clean order
-      if (store.order?.[providerKey]) {
-        delete store.order[providerKey];
-        if (Object.keys(store.order).length === 0) {
-          store.order = undefined;
-        }
-        changed = true;
-      }
-
-      // Clean lastGood
-      if (store.lastGood?.[providerKey]) {
-        delete store.lastGood[providerKey];
-        if (Object.keys(store.lastGood).length === 0) {
-          store.lastGood = undefined;
-        }
-        changed = true;
-      }
-
-      // Clean usageStats for profiles that matched this provider
-      if (store.usageStats) {
-        for (const statsKey of Object.keys(store.usageStats)) {
-          if (statsKey.startsWith(`${providerKey}:`)) {
-            delete store.usageStats[statsKey];
-            changed = true;
-          }
-        }
-        if (Object.keys(store.usageStats).length === 0) {
-          store.usageStats = undefined;
-        }
-      }
-
-      return changed;
-    },
-  });
-
-  return removedCount;
-}
-
 export async function markAuthProfileGood(params: {
   store: AuthProfileStore;
   provider: string;
