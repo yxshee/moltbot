@@ -3,6 +3,7 @@ import type { RuntimeEnv } from "../runtime.js";
 import type {
   ChannelsWizardMode,
   ConfigureWizardParams,
+  ModelWizardMode,
   WizardSection,
 } from "./configure.shared.js";
 import { formatCliCommand } from "../cli/command-format.js";
@@ -18,6 +19,7 @@ import { removeChannelConfigWizard } from "./configure.channels.js";
 import { maybeInstallDaemon } from "./configure.daemon.js";
 import { promptAuthConfig } from "./configure.gateway-auth.js";
 import { promptGatewayConfig } from "./configure.gateway.js";
+import { removeProviderConfigWizard } from "./configure.providers.js";
 import {
   CONFIGURE_SECTION_OPTIONS,
   confirm,
@@ -64,6 +66,28 @@ async function promptConfigureSection(
     }),
     runtime,
   );
+}
+
+async function promptModelMode(runtime: RuntimeEnv): Promise<ModelWizardMode> {
+  return guardCancel(
+    await select({
+      message: "Model providers",
+      options: [
+        {
+          value: "configure",
+          label: "Configure/add",
+          hint: "Add or update a provider's credentials",
+        },
+        {
+          value: "remove",
+          label: "Remove provider config",
+          hint: "Delete provider config + auth credentials",
+        },
+      ],
+      initialValue: "configure",
+    }),
+    runtime,
+  ) as ModelWizardMode;
 }
 
 async function promptChannelMode(runtime: RuntimeEnv): Promise<ChannelsWizardMode> {
@@ -315,7 +339,12 @@ export async function runConfigureWizard(
       }
 
       if (selected.includes("model")) {
-        nextConfig = await promptAuthConfig(nextConfig, runtime, prompter);
+        const modelMode = await promptModelMode(runtime);
+        if (modelMode === "configure") {
+          nextConfig = await promptAuthConfig(nextConfig, runtime, prompter);
+        } else {
+          nextConfig = await removeProviderConfigWizard(nextConfig, runtime);
+        }
       }
 
       if (selected.includes("web")) {
@@ -435,7 +464,12 @@ export async function runConfigureWizard(
         }
 
         if (choice === "model") {
-          nextConfig = await promptAuthConfig(nextConfig, runtime, prompter);
+          const modelMode = await promptModelMode(runtime);
+          if (modelMode === "configure") {
+            nextConfig = await promptAuthConfig(nextConfig, runtime, prompter);
+          } else {
+            nextConfig = await removeProviderConfigWizard(nextConfig, runtime);
+          }
           await persistConfig();
         }
 

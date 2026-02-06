@@ -22,6 +22,8 @@ export type WizardSection = (typeof CONFIGURE_WIZARD_SECTIONS)[number];
 
 export type ChannelsWizardMode = "configure" | "remove";
 
+export type ModelWizardMode = "configure" | "remove";
+
 export type ConfigureWizardParams = {
   command: "configure" | "update";
   sections?: WizardSection[];

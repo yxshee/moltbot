@@ -10,6 +10,7 @@ import {
   modelsAuthOrderGetCommand,
   modelsAuthOrderSetCommand,
   modelsAuthPasteTokenCommand,
+  modelsAuthRemoveCommand,
   modelsAuthSetupTokenCommand,
   modelsFallbacksAddCommand,
   modelsFallbacksClearCommand,
@@ -355,6 +356,23 @@ export function registerModelsCli(program: Command) {
             provider: opts.provider as string | undefined,
             profileId: opts.profileId as string | undefined,
             expiresIn: opts.expiresIn as string | undefined,
+          },
+          defaultRuntime,
+        );
+      });
+    });
+
+  auth
+    .command("remove")
+    .description("Remove a provider's configuration and auth credentials")
+    .requiredOption("--provider <id>", "Provider id to remove (e.g. openrouter)")
+    .option("--yes", "Skip confirmation prompt", false)
+    .action(async (opts) => {
+      await runModelsCommand(async () => {
+        await modelsAuthRemoveCommand(
+          {
+            provider: opts.provider as string,
+            yes: Boolean(opts.yes),
           },
           defaultRuntime,
         );

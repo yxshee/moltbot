@@ -79,6 +79,10 @@ vi.mock("./configure.channels.js", () => ({
   removeChannelConfigWizard: vi.fn(),
 }));
 
+vi.mock("./configure.providers.js", () => ({
+  removeProviderConfigWizard: vi.fn(),
+}));
+
 vi.mock("./configure.daemon.js", () => ({
   maybeInstallDaemon: vi.fn(),
 }));
@@ -123,7 +127,7 @@ describe("runConfigureWizard", () => {
       {
         log: vi.fn(),
         error: vi.fn(),
-        exit: vi.fn(),
+        exit: vi.fn() as unknown as (code: number) => never,
       },
     );
 

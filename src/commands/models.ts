@@ -15,6 +15,7 @@ export {
   modelsAuthOrderGetCommand,
   modelsAuthOrderSetCommand,
 } from "./models/auth-order.js";
+export { modelsAuthRemoveCommand, removeProviderFromConfig } from "./models/auth-remove.js";
 export {
   modelsFallbacksAddCommand,
   modelsFallbacksClearCommand,
