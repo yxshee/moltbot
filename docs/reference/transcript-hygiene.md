@@ -73,6 +73,20 @@ Implementation:
 
 ---
 
+## Global rule: malformed tool results
+
+Tool-result messages are dropped when both `toolCallId` and `toolUseId` are missing
+or blank (including whitespace-only values). This prevents strict providers from
+rejecting replayed history with invalid tool result references.
+
+Implementation:
+
+- `repairMalformedToolEntries` in `src/agents/session-transcript-repair.ts`
+- Applied in `sanitizeSessionHistory` in `src/agents/pi-embedded-runner/google.ts`
+- Persistence-time guard in `installSessionToolResultGuard` (`src/agents/session-tool-result-guard.ts`)
+
+---
+
 ## Global rule: inter-session input provenance
 
 When an agent sends a prompt into another session via `sessions_send` (including
@@ -95,6 +109,7 @@ external end-user instructions.
 **OpenAI / OpenAI Codex**
 
 - Image sanitization only.
+- Malformed tool-call/tool-result entries are still pruned (no id rewriting).
 - On model switch into OpenAI Responses/Codex, drop orphaned reasoning signatures (standalone reasoning items without a following content block).
 - No tool call id sanitization.
 - No tool result pairing repair.

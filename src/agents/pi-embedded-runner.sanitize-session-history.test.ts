@@ -204,6 +204,70 @@ describe("sanitizeSessionHistory", () => {
     expect(result.map((msg) => msg.role)).toEqual(["user"]);
   });
 
+  it("drops malformed toolResult entries with missing or blank ids for openai", async () => {
+    const messages: AgentMessage[] = [
+      {
+        role: "assistant",
+        content: [{ type: "toolCall", id: "call_good", name: "read", arguments: {} }],
+      },
+      {
+        role: "toolResult",
+        toolCallId: "   ",
+        toolName: "read",
+        content: [{ type: "text", text: "bad blank id" }],
+      } as unknown as AgentMessage,
+      {
+        role: "toolResult",
+        toolName: "read",
+        content: [{ type: "text", text: "bad missing id" }],
+      } as unknown as AgentMessage,
+      {
+        role: "toolResult",
+        toolCallId: "call_good",
+        toolName: "read",
+        content: [{ type: "text", text: "ok" }],
+      } as unknown as AgentMessage,
+    ];
+
+    const result = await sanitizeSessionHistory({
+      messages,
+      modelApi: "openai-responses",
+      provider: "openai",
+      sessionManager: mockSessionManager,
+      sessionId: TEST_SESSION_ID,
+    });
+
+    expect(result.map((msg) => msg.role)).toEqual(["assistant", "toolResult"]);
+    expect((result[1] as { toolCallId?: string }).toolCallId).toBe("call_good");
+  });
+
+  it("drops malformed legacy alias tool calls with blank names for openai", async () => {
+    const messages: AgentMessage[] = [
+      {
+        role: "assistant",
+        content: [
+          { type: "tool_call", id: "call_bad", name: "   ", arguments: {} },
+          { type: "function_call", id: "call_ok", name: "exec", arguments: {} },
+        ],
+      },
+    ];
+
+    const result = await sanitizeSessionHistory({
+      messages,
+      modelApi: "openai-responses",
+      provider: "openai",
+      sessionManager: mockSessionManager,
+      sessionId: TEST_SESSION_ID,
+    });
+
+    const assistant = result[0] as { content?: Array<{ type?: string; id?: string }> };
+    const toolCalls = assistant.content?.filter((block) =>
+      ["tool_call", "function_call"].includes(block.type ?? ""),
+    );
+    expect(toolCalls).toHaveLength(1);
+    expect(toolCalls?.[0]?.id).toBe("call_ok");
+  });
+
   it("does not downgrade openai reasoning when the model has not changed", async () => {
     const sessionEntries = [
       makeModelSnapshotEntry({
