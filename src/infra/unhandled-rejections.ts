@@ -101,6 +101,11 @@ export function isTransientNetworkError(err: unknown): boolean {
     return true;
   }
 
+  // "terminated" TypeError from undici when a TLS socket closes mid-download
+  if (err instanceof TypeError && err.message === "terminated") {
+    return true;
+  }
+
   // Check the cause chain recursively
   const cause = getErrorCause(err);
   if (cause && cause !== err) {
@@ -136,6 +141,24 @@ export function isUnhandledRejectionHandled(reason: unknown): boolean {
     }
   }
   return false;
+}
+
+export function installUncaughtExceptionHandler(): void {
+  process.on("uncaughtException", (error) => {
+    if (isAbortError(error)) {
+      console.warn("[openclaw] Suppressed uncaught AbortError:", formatUncaughtError(error));
+      return;
+    }
+    if (isTransientNetworkError(error)) {
+      console.warn(
+        "[openclaw] Non-fatal uncaught exception (continuing):",
+        formatUncaughtError(error),
+      );
+      return;
+    }
+    console.error("[openclaw] Uncaught exception:", formatUncaughtError(error));
+    process.exit(1);
+  });
 }
 
 export function installUnhandledRejectionHandler(): void {

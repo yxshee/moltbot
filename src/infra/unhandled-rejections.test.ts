@@ -73,6 +73,17 @@ describe("isTransientNetworkError", () => {
     expect(isTransientNetworkError(error)).toBe(true);
   });
 
+  it('returns true for TypeError with "terminated" message (undici TLS close)', () => {
+    const error = new TypeError("terminated");
+    expect(isTransientNetworkError(error)).toBe(true);
+  });
+
+  it("returns true for terminated TypeError with a network cause", () => {
+    const cause = Object.assign(new Error("socket hang up"), { code: "ECONNRESET" });
+    const error = Object.assign(new TypeError("terminated"), { cause });
+    expect(isTransientNetworkError(error)).toBe(true);
+  });
+
   it("returns true for fetch failed with network cause", () => {
     const cause = Object.assign(new Error("getaddrinfo ENOTFOUND"), { code: "ENOTFOUND" });
     const error = Object.assign(new TypeError("fetch failed"), { cause });
