@@ -141,16 +141,25 @@ export async function inspectMatrixDirectRooms(params: {
       source,
     };
   };
+  // Keep the joined-room fallback, but remember a failed read so callers do not report it as
+  // a missing mapping. An absent m.direct event resolves to {} rather than rejecting.
+  let readError: unknown;
   const directContent: MatrixDirectAccountData = await readMatrixDirectAccountData(
     params.client,
-  ).catch(() => ({}));
+  ).catch((error: unknown) => {
+    readError = error;
+    return {};
+  });
   const mappedRoomIds = normalizeUniqueTrimmedStringList(directContent[remoteUserId]);
   const mappedRooms = await Promise.all(
     mappedRoomIds.map(async (roomId) => await classifyRoom(roomId, "account-data")),
   );
   const mappedStrict = mappedRooms.find((room) => room.strict);
 
-  const joinedRooms = await params.client.getJoinedRooms().catch(() => []);
+  const joinedRooms = await params.client.getJoinedRooms().catch((error: unknown) => {
+    readError ??= error;
+    return [];
+  });
   const discoveredStrictRooms: MatrixDirectRoomCandidate[] = [];
   for (const roomId of normalizeUniqueTrimmedStringList(joinedRooms)) {
     if (mappedRoomIds.includes(roomId)) {
@@ -172,6 +181,7 @@ export async function inspectMatrixDirectRooms(params: {
     discoveredStrictRoomIds,
     activeRoomId:
       mappedStrict?.roomId ?? discoveredExplicit?.roomId ?? discoveredStrictRoomIds[0] ?? null,
+    ...(readError === undefined ? {} : { readError }),
   };
 }
 

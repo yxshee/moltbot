@@ -1,3 +1,4 @@
+import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalStringifiedId,
@@ -80,6 +81,12 @@ async function resolveDirectRoomId(
     return inspection.activeRoomId;
   }
 
+  if (inspection.readError !== undefined) {
+    throw new Error(
+      `Could not look up a direct room for ${trimmed}: ${formatErrorMessage(inspection.readError)}`,
+      { cause: inspection.readError },
+    );
+  }
   throw new Error(`No direct room found for ${trimmed} (m.direct missing)`);
 }
 

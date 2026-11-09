@@ -93,6 +93,19 @@ describe("resolveMatrixRoomId", () => {
     expect(client["setAccountData"]).not.toHaveBeenCalled();
   });
 
+  it.each(["getAccountData", "getJoinedRooms"])(
+    "reports a failed %s read instead of a missing m.direct mapping",
+    async (method) => {
+      const client = makeDirectClient({
+        [method]: vi.fn().mockRejectedValue(new Error("M_UNKNOWN: 503 Service Unavailable")),
+      });
+      await expect(resolveMatrixRoomId(client, userId)).rejects.toThrow(
+        `Could not look up a direct room for ${userId}: M_UNKNOWN: 503 Service Unavailable`,
+      );
+      expect(client["setAccountData"]).not.toHaveBeenCalled();
+    },
+  );
+
   it("accepts nested Matrix user target prefixes", async () => {
     const client = makeDirectClient({ mappedRoomIds: [roomId], resolveRoom: vi.fn() });
     await expect(resolveMatrixRoomId(client, `matrix:user:${userId}`)).resolves.toBe(roomId);
